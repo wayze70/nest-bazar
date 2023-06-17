@@ -69,12 +69,12 @@ export class AuthService {
     await this.prisma.user.updateMany({
       where: {
         id: userId,
-        hashedRefresh: {
+        refreshTokenHash: {
           not: null,
         },
       },
       data: {
-        hashedRefresh: null,
+        refreshTokenHash: null,
       },
     });
 
@@ -94,7 +94,7 @@ export class AuthService {
     if (!user) throw new ForbiddenException('Refresh token access denied');
 
     const refreshTokenMatch = await argon.verify(
-      user.hashedRefresh,
+      user.refreshTokenHash,
       refreshToken,
     );
 
@@ -113,7 +113,7 @@ export class AuthService {
         id: userId,
       },
       data: {
-        hashedRefresh: hash,
+        refreshTokenHash: hash,
       },
     });
   }
@@ -122,7 +122,7 @@ export class AuthService {
     const accessSecret = this.config.get('JWT_SECRET');
 
     delete user.passwordHash;
-    delete user.hashedRefresh;
+    delete user.refreshTokenHash;
 
     const [accessToken] = await Promise.all([
       this.jwt.signAsync(
@@ -146,7 +146,7 @@ export class AuthService {
     const refreshSecret = this.config.get('JWT_REFRESH_SECRET');
 
     delete user.passwordHash;
-    delete user.hashedRefresh;
+    delete user.refreshTokenHash;
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwt.signAsync(
