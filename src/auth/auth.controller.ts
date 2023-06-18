@@ -29,7 +29,7 @@ export class AuthController {
   async signup(
     @Body() dto: RegisterAuthDto,
     @Res({ passthrough: true }) res,
-  ): Promise<Tokens> {
+  ): Promise<AccessToken> {
     const tokens = await this.authService.signup(dto);
 
     res.cookie('auth-cookie', tokens.access_token, {
@@ -37,19 +37,22 @@ export class AuthController {
     }); // metoda neprojde, protože je httpOnly jinak funguje
     res.cookie('ref-cookie', tokens.refresh_token, {
       expires: new Date(new Date().getTime() + 15 * 60 * 1000),
-      path: '/auth/refresh-token',
+      path: 'api/v1/auth/refresh-token',
     });
 
     // Uloží se do cookie jako HttpOnly, následně je zapotřebí aby se každý request posílal v headru a já jej ověřoval
     // https://github.com/Naveen512/nestjs-jwt-cookie-auth/blob/master/src/users/users.controller.ts
 
-    return tokens;
+    return {access_token: tokens.access_token};
   }
 
   // POST /auth/signin
   @HttpCode(HttpStatus.OK)
   @Post('signin')
-  async signin(@Body() dto: LoginAuthDto, @Res() res): Promise<Tokens> {
+  async signin(
+    @Body() dto: LoginAuthDto,
+    @Res({ passthrough: true }) res,
+  ): Promise<AccessToken> {
     const tokens = await this.authService.signin(dto);
 
     res.cookie('auth-cookie', tokens.access_token, {
@@ -57,15 +60,15 @@ export class AuthController {
     });
     res.cookie('ref-cookie', tokens.refresh_token, {
       expires: new Date(new Date().getTime() + 15 * 60 * 1000),
-      path: '/auth/refresh-token',
+      path: 'api/v1/auth/refresh-token',
     });
 
-    return tokens;
+    return {access_token: tokens.access_token};
   }
 
   @UseGuards(AtGuard)
   @HttpCode(HttpStatus.OK)
-  @Post('logout')
+  @Get('logout')
   async logout(@Req() req: Request): Promise<{ msg: string }> {
     const user = req.user;
     await this.authService.logout(user['sub']);
@@ -74,7 +77,7 @@ export class AuthController {
 
   @UseGuards(RtGuard)
   @HttpCode(HttpStatus.OK)
-  @Post('refresh-token')
+  @Get('refresh-token')
   async refreshTokens(@Req() req: Request): Promise<AccessToken> {
     const user = req.user;
     const token = await this.authService.refreshTokens(

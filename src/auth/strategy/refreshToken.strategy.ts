@@ -36,7 +36,6 @@ export class RefreshTokenStrategy extends PassportStrategy(
     console.log({payload});*/
 
     const token = req?.cookies['ref-cookie'];
-    console.log({ ...payload, token });
 
     if (!token) throw new ForbiddenException('Refresh token malformed');
 

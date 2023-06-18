@@ -22,10 +22,10 @@ export class AuthService {
     try {
       const user = await this.prisma.user.create({
         data: {
-          firstName: dto.firstName,
-          lastName: dto.lastName,
+          first_name: dto.firstName,
+          last_name: dto.lastName,
           email: dto.email,
-          passwordHash,
+          password_hash: passwordHash,
         },
       });
 
@@ -54,7 +54,7 @@ export class AuthService {
       throw new ForbiddenException('Credentials incorrect');
     }
 
-    const pwMatches = await argon.verify(user.passwordHash, dto.password);
+    const pwMatches = await argon.verify(user.password_hash, dto.password);
 
     if (!pwMatches) {
       throw new ForbiddenException('Credentials incorrect');
@@ -69,12 +69,12 @@ export class AuthService {
     await this.prisma.user.updateMany({
       where: {
         id: userId,
-        refreshTokenHash: {
+        refresh_token_hash: {
           not: null,
         },
       },
       data: {
-        refreshTokenHash: null,
+        refresh_token_hash: null,
       },
     });
 
@@ -91,10 +91,11 @@ export class AuthService {
       },
     });
 
-    if (!user) throw new ForbiddenException('Refresh token access denied');
+    if (!user || !user.refresh_token_hash)
+      throw new ForbiddenException('Refresh token access denied');
 
     const refreshTokenMatch = await argon.verify(
-      user.refreshTokenHash,
+      user.refresh_token_hash,
       refreshToken,
     );
 
@@ -113,7 +114,7 @@ export class AuthService {
         id: userId,
       },
       data: {
-        refreshTokenHash: hash,
+        refresh_token_hash: hash,
       },
     });
   }
@@ -121,8 +122,8 @@ export class AuthService {
   async signAccessToken(user: User): Promise<AccessToken> {
     const accessSecret = this.config.get('JWT_SECRET');
 
-    delete user.passwordHash;
-    delete user.refreshTokenHash;
+    delete user.password_hash;
+    delete user.refresh_token_hash;
 
     const [accessToken] = await Promise.all([
       this.jwt.signAsync(
@@ -145,8 +146,8 @@ export class AuthService {
     const accessSecret = this.config.get('JWT_SECRET');
     const refreshSecret = this.config.get('JWT_REFRESH_SECRET');
 
-    delete user.passwordHash;
-    delete user.refreshTokenHash;
+    delete user.password_hash;
+    delete user.refresh_token_hash;
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwt.signAsync(
