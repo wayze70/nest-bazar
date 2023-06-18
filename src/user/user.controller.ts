@@ -10,4 +10,10 @@ export class UserController {
   getMe(@Req() req: Request) {
     return req.user;
   }
+
+  @UseGuards(AtGuard)
+  @Get('')
+  getAllUsers(@Req() req: Request) {
+    return req.user;
+  }
 }
