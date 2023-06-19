@@ -11,6 +11,6 @@ import { AccessTokenStrategy, RefreshTokenStrategy } from './strategy';
   // import z prisma, kde musí být export
   // imports: [PrismaModule], uděláme globální modul, který nemusíme všude importovat
   controllers: [AuthController],
-  providers: [AuthService /* JwtStrategy*/, AccessTokenStrategy, RefreshTokenStrategy],
+  providers: [AuthService, AccessTokenStrategy, RefreshTokenStrategy],
 })
 export class AuthModule {}

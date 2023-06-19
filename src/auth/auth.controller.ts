@@ -15,7 +15,6 @@ import { AuthService } from './auth.service';
 import { LoginAuthDto, RegisterAuthDto } from './dto';
 import { Request } from 'express';
 import { AccessToken, Tokens } from './types';
-import { AuthGuard } from '@nestjs/passport';
 import { AtGuard, RtGuard } from 'src/common/guards';
 
 @Controller('auth')
@@ -37,13 +36,13 @@ export class AuthController {
     }); // metoda neprojde, protože je httpOnly jinak funguje
     res.cookie('ref-cookie', tokens.refresh_token, {
       expires: new Date(new Date().getTime() + 15 * 60 * 1000),
-      path: 'api/v1/auth/refresh-token',
+      path: '/api/auth/refresh-token',
     });
 
     // Uloží se do cookie jako HttpOnly, následně je zapotřebí aby se každý request posílal v headru a já jej ověřoval
     // https://github.com/Naveen512/nestjs-jwt-cookie-auth/blob/master/src/users/users.controller.ts
 
-    return {access_token: tokens.access_token};
+    return { access_token: tokens.access_token };
   }
 
   // POST /auth/signin
@@ -60,15 +59,15 @@ export class AuthController {
     });
     res.cookie('ref-cookie', tokens.refresh_token, {
       expires: new Date(new Date().getTime() + 15 * 60 * 1000),
-      path: 'api/v1/auth/refresh-token',
+      path: '/api/auth/refresh-token',
     });
 
-    return {access_token: tokens.access_token};
+    return { access_token: tokens.access_token };
   }
 
   @UseGuards(AtGuard)
   @HttpCode(HttpStatus.OK)
-  @Get('logout')
+  @Get('revoke-all-session')
   async logout(@Req() req: Request): Promise<{ msg: string }> {
     const user = req.user;
     await this.authService.logout(user['sub']);
@@ -78,12 +77,20 @@ export class AuthController {
   @UseGuards(RtGuard)
   @HttpCode(HttpStatus.OK)
   @Get('refresh-token')
-  async refreshTokens(@Req() req: Request): Promise<AccessToken> {
+  async refreshTokens(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res,
+  ): Promise<AccessToken> {
     const user = req.user;
     const token = await this.authService.refreshTokens(
       user['sub'],
       user['token'],
     );
+
+    res.cookie('auth-cookie', token.access_token, {
+      expires: new Date(new Date().getTime() + 60 * 1000),
+    });
+
     return token;
   }
 }

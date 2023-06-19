@@ -20,6 +20,13 @@ export class AuthService {
   async signup(dto: RegisterAuthDto): Promise<Tokens> {
     const passwordHash = await argon.hash(dto.password);
     try {
+      // TODO: Podívat se jestli to nejde udělat jiným způsobem, než se dotazovat dvakrát na databázi
+      const isEmailTaken = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+
+      if (isEmailTaken) throw new ForbiddenException('Creadentail taken');
+
       const user = await this.prisma.user.create({
         data: {
           first_name: dto.firstName,
@@ -149,10 +156,17 @@ export class AuthService {
     delete user.password_hash;
     delete user.refresh_token_hash;
 
+    const { id, ...userWithoutId } = user;
+
+    const userObject = {
+      sub: user.id,
+      ...userWithoutId,
+    };
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwt.signAsync(
         {
-          user,
+          user: userObject,
         },
         {
           secret: accessSecret,
@@ -161,7 +175,7 @@ export class AuthService {
       ),
       this.jwt.signAsync(
         {
-          sub: user.id,
+          sub: id,
         },
         {
           secret: refreshSecret,
@@ -175,22 +189,4 @@ export class AuthService {
       refresh_token: refreshToken,
     };
   }
-
-  /* async signToken(
-    userId: Object,
-    email: string,
-  ): Promise<{ access_token: string }> {
-    const payload = {
-      sub: userId,
-      email,
-    };
-
-    const secret = this.config.get('JWT_SECRET');
-    const token = await this.jwt.signAsync(payload, {
-      expiresIn: '15m',
-      secret: secret,
-    });
-
-    return { access_token: token };
-  }*/
 }
