@@ -15,7 +15,8 @@ import { AuthService } from './auth.service';
 import { LoginAuthDto, RegisterAuthDto } from './dto';
 import { Request } from 'express';
 import { AccessToken, Tokens } from './types';
-import { AtGuard, RtGuard } from 'src/common/guards';
+import { AccessTokenGuard, RefreshTokenGuard } from 'src/common/guards';
+import { User } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
@@ -65,16 +66,16 @@ export class AuthController {
     return { access_token: tokens.access_token };
   }
 
-  @UseGuards(AtGuard)
+  @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.OK)
   @Get('revoke-all-session')
   async logout(@Req() req: Request): Promise<{ msg: string }> {
-    const user = req.user;
+    const user: User = req.user as User;
     await this.authService.logout(user['sub']);
     return { msg: 'Success logout' };
   }
 
-  @UseGuards(RtGuard)
+  @UseGuards(RefreshTokenGuard)
   @HttpCode(HttpStatus.OK)
   @Get('refresh-token')
   async refreshTokens(

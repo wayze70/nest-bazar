@@ -5,14 +5,22 @@ import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 type JwtPayload = {
-  sub: string;
-  email: string;
+  user: {
+    id: number;
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+    update_at: Date;
+    create_at: Date;
+  };
+  iat: number;
+  exp: number;
 };
 
 @Injectable()
 export class AccessTokenStrategy extends PassportStrategy(
   Strategy,
-  'jwt' /* Výchozí hodnota je jwt, nemusí se tma psát, ale pro přehlednost */,
+  'jwt',
 ) {
   prisma: any;
   constructor(config: ConfigService) {
@@ -22,7 +30,7 @@ export class AccessTokenStrategy extends PassportStrategy(
       secretOrKey: config.get<string>('JWT_SECRET'),
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
-          let token = request?.cookies['auth-cookie'];
+          const token = request?.cookies['auth-cookie'];
 
           if (!token) {
             return null;
@@ -39,7 +47,5 @@ export class AccessTokenStrategy extends PassportStrategy(
     }
 
     return payload;
-
-    // req.user = payload;
   }
 }
